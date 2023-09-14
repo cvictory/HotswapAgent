@@ -64,7 +64,7 @@ import org.hotswap.agent.watch.Watcher;
 public abstract class AbstractNIO2Watcher implements Watcher {
     protected AgentLogger LOGGER = AgentLogger.getLogger(this.getClass());
 
-    protected final static WatchEvent.Kind<?>[] KINDS = new WatchEvent.Kind<?>[] { ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY };
+    protected final static WatchEvent.Kind<?>[] KINDS = new WatchEvent.Kind<?>[]{ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY};
 
     protected WatchService watcher;
     protected final Map<WatchKey, Path> keys;
@@ -98,7 +98,7 @@ public abstract class AbstractNIO2Watcher implements Watcher {
             // toString() is weird and solves HiarchicalUriException for URI
             // like "file:./src/resources/file.txt".
             path = new File(pathPrefix);
-         } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             if (!LOGGER.isLevelEnabled(Level.TRACE)) {
                 LOGGER.warning("Unable to watch for path {}, not a local regular file or directory.", pathPrefix);
             } else {
@@ -153,12 +153,12 @@ public abstract class AbstractNIO2Watcher implements Watcher {
      */
     @Override
     public void closeClassLoader(ClassLoader classLoader) {
-        for (Iterator<Entry<WatchEventListener, ClassLoader>> entryIterator = classLoaderListeners.entrySet().iterator(); entryIterator.hasNext();) {
+        for (Iterator<Entry<WatchEventListener, ClassLoader>> entryIterator = classLoaderListeners.entrySet().iterator(); entryIterator.hasNext(); ) {
             Entry<WatchEventListener, ClassLoader> entry = entryIterator.next();
             if (entry.getValue().equals(classLoader)) {
                 entryIterator.remove();
                 try {
-                    for (Iterator<Entry<Path, List<WatchEventListener>>> listenersIterator = listeners.entrySet().iterator(); listenersIterator.hasNext();) {
+                    for (Iterator<Entry<Path, List<WatchEventListener>>> listenersIterator = listeners.entrySet().iterator(); listenersIterator.hasNext(); ) {
                         Entry<Path, List<WatchEventListener>> pathListenerEntry = listenersIterator.next();
                         List<WatchEventListener> l = pathListenerEntry.getValue();
 
@@ -206,10 +206,14 @@ public abstract class AbstractNIO2Watcher implements Watcher {
      * Registers the given directory
      */
     public void addDirectory(Path path) throws IOException {
-       registerAll(path);
+        registerAll(path);
     }
 
-    protected abstract void registerAll(final Path dir) throws IOException;
+    protected abstract void registerAll(final Path dir, WatchEvent.Kind kind, boolean ignoreFile) throws IOException;
+
+    protected void registerAll(final Path dir) throws IOException {
+        registerAll(dir, null, true);
+    }
 
     /**
      * Process all events for keys queued to the watcher
@@ -254,7 +258,7 @@ public abstract class AbstractNIO2Watcher implements Watcher {
             if (kind == ENTRY_CREATE) {
                 try {
                     if (Files.isDirectory(child, NOFOLLOW_LINKS)) {
-                        registerAll(child);
+                        registerAll(child, kind, false);
                     }
                 } catch (IOException x) {
                     LOGGER.warning("Unable to register events for directory {}", x, child);
@@ -281,6 +285,11 @@ public abstract class AbstractNIO2Watcher implements Watcher {
         return true;
     }
 
+    protected void dispatchEvent(WatchEvent.Kind kind, Path replacePath) {
+        Event ev = new Event(kind, replacePath);
+        dispatcher.add(ev, replacePath);
+    }
+
     @Override
     public void run() {
 
@@ -288,7 +297,7 @@ public abstract class AbstractNIO2Watcher implements Watcher {
             @Override
             public void run() {
                 try {
-                    for (;;) {
+                    for (; ; ) {
                         if (stopped || !processEvents()) {
                             break;
                         }
@@ -314,10 +323,10 @@ public abstract class AbstractNIO2Watcher implements Watcher {
      * Get a Watch event modifier. These are platform specific and hiden in sun api's
      *
      * @see <a href="https://github.com/HotswapProjects/HotswapAgent/issues/41">
-     *      Issue#41</a>
+     * Issue#41</a>
      * @see <a href=
-     *      "http://stackoverflow.com/questions/9588737/is-java-7-watchservice-slow-for-anyone-else">
-     *      Is Java 7 WatchService Slow for Anyone Else?</a>
+     * "http://stackoverflow.com/questions/9588737/is-java-7-watchservice-slow-for-anyone-else">
+     * Is Java 7 WatchService Slow for Anyone Else?</a>
      */
     static WatchEvent.Modifier getWatchEventModifier(String claz, String field) {
         try {
@@ -326,6 +335,35 @@ public abstract class AbstractNIO2Watcher implements Watcher {
             return (WatchEvent.Modifier) f.get(c);
         } catch (Exception e) {
             return null;
+        }
+    }
+
+    private static class Event<T> implements WatchEvent<T> {
+        private final WatchEvent.Kind<T> kind;
+        private final T context;
+
+        // synchronize on watch key to access/increment count
+        private int count;
+
+        Event(WatchEvent.Kind<T> type, T context) {
+            this.kind = type;
+            this.context = context;
+            this.count = 1;
+        }
+
+        @Override
+        public WatchEvent.Kind<T> kind() {
+            return kind;
+        }
+
+        @Override
+        public T context() {
+            return context;
+        }
+
+        @Override
+        public int count() {
+            return count;
         }
     }
 }

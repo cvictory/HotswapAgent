@@ -93,12 +93,13 @@ public class TreeWatcherNIO extends AbstractNIO2Watcher {
     /**
      * Register the given directory,  with the
      * WatchService. Sub-directories are automatically watched (filesystem supported)
-     *
-     * @param dir the dir
+     * @param dir
+     * @param kind
+     * @param ignoreFile
      * @throws IOException Signals that an I/O exception has occurred.
      */
     @Override
-    protected void registerAll(Path dir) throws IOException {
+    protected void registerAll(Path dir, WatchEvent.Kind kind, boolean ignoreFile) throws IOException {
         LOGGER.info("Registering directory {} ", dir);
         register(dir);
     }

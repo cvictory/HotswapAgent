@@ -32,7 +32,7 @@ import java.util.List;
 
 /**
  * Do refresh Spring class (scanned by classpath scanner) based on URI or byte[] definition.
- *
+ * <p>
  * This commands merges events of watcher.event(CREATE) and transformer hotswap reload to a single refresh command.
  */
 public class ClassPathBeanRefreshCommand extends MergeableCommand {
@@ -82,9 +82,9 @@ public class ClassPathBeanRefreshCommand extends MergeableCommand {
             LOGGER.debug("Executing ClassPathBeanDefinitionScannerAgent.refreshClass('{}')", className);
 
             Class<?> clazz = Class.forName("org.hotswap.agent.plugin.spring.scanner.ClassPathBeanDefinitionScannerAgent", true, appClassLoader);
-            Method method  = clazz.getDeclaredMethod(
-                    "refreshClass", new Class[] {ClassLoader.class, String.class, byte[].class});
-            method.invoke(null, appClassLoader , basePackage, classDefinition);
+            Method method = clazz.getDeclaredMethod(
+                    "refreshClass", new Class[]{ClassLoader.class, String.class, String.class, byte[].class});
+            method.invoke(null, appClassLoader, basePackage, className, classDefinition);
         } catch (NoSuchMethodException e) {
             throw new IllegalStateException("Plugin error, method not found", e);
         } catch (InvocationTargetException e) {
