@@ -314,7 +314,7 @@ public class SpringReload {
 
         if (beanName != null && beanName.startsWith("&")) {
             try {
-                beanFactory.getBeanDefinition(beanName);
+                beanFactory.containsBeanDefinition(beanName);
             } catch (NoSuchBeanDefinitionException e) {
                 BeanDefinition mergedBeanDefinition = beanFactory.getMergedBeanDefinition(beanName);
                 if (mergedBeanDefinition instanceof RootBeanDefinition) {
@@ -452,10 +452,10 @@ public class SpringReload {
         // check init method
         if (beanDefinition.isSingleton() && beanDefinition instanceof AbstractBeanDefinition) {
             if (abstractBeanDefinition.getInitMethodName() != null) {
-                recreatedBeans.add(beanName);
+                return true;
             }
         } else if (beanDefinition.isSingleton() && instance instanceof InitializingBean) {
-            recreatedBeans.add(beanName);
+            return true;
         }
 
         return false;
