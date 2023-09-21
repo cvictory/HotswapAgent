@@ -29,7 +29,7 @@ public class SpringChangedHub implements SpringListener<SpringEvent> {
     public static final int CHANGING = 2;
     public static final int RELOADED = 3;
 
-    static int maxWaitTimes = 5;
+    static int maxWaitTimes = 1;
 
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1, new ThreadFactory() {
 
@@ -158,7 +158,7 @@ public class SpringChangedHub implements SpringListener<SpringEvent> {
         } else if (status.get() == CHANGING) {
             if (waitTimes.get() == 0) {
                 int restTime = maxWaitTimes * DEFAULT_DELAY_PERIOD / 1000;
-                LOGGER.info("waiting to start reload '{}', it will start after {}s", ObjectUtils.identityToString(beanFactory()), restTime);
+                LOGGER.info("waiting to start reload '{}' ...", ObjectUtils.identityToString(beanFactory()), restTime);
             }
             waitTimes.incrementAndGet();
         }
